@@ -16,7 +16,52 @@ library(broom)
 ```
 
 $$Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_n X_n + \epsilon$$
-
 with $\epsilon \sim \mathcal{N}(0, \sigma^2)$.
 
-Running for political office is very difficult. Using data from over 1,000 candidates for governor since 1945 in the United States, we want to create a model to predict how long candidates will live after being elected. One potential weakness is that gender equity has changed over the last few years, meaning that the data from the past may not be accurate to date.
+
+$$
+\hat{Y}_i = 40 - 0.5 \cdot \text{age}_i - 2.3 \cdot \text{won}_i + 0.04 \cdot \text{year}_i
+$$
+
+```{r}
+#| cache: true
+
+x <- governors |>
+    select(c(lived_after, election_age, sex))
+
+model_fit <- linear_reg(engine = "lm") |>
+    fit(lived_after ~ sex + election_age, data = x)
+fit_years <- tidy(model_fit, conf.int = TRUE)
+
+library(gt)
+
+fit_years <- tidy(model_fit, conf.int = TRUE)
+
+fit_years |> 
+  gt() |>
+  fmt_number(
+    columns = c(estimate, std.error, statistic, p.value, conf.low, conf.high),
+    decimals = 3
+  ) |>
+  cols_label(
+    term = "Term",
+    estimate = "Estimate",
+    std.error = "Std. Error",
+    statistic = "t Statistic",
+    p.value = "P-Value",
+    conf.low = "CI Lower",
+    conf.high = "CI Upper"
+  ) |>
+  tab_header(
+    title = "Linear Regression Results",
+    subtitle = "Predicting `lived_after` from `sex` and `election_age`"
+  ) |>
+  tab_options(
+    table.border.top.width = px(1),
+    table.border.bottom.width = px(1),
+    column_labels.font.weight = "bold"
+  )
+
+```
+
+Running for political office is very difficult. Using data from over 1,000 candidates for governor since 1945 in the United States, we want to create a model to predict how long candidates will live after being elected. One potential weakness is that gender equity has changed over the last few years, meaning that the data from the past may not be accurate to date. We model life expectancy after the election as a linear function of the candidate’s sex, and age at election.

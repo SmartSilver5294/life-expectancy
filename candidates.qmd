@@ -13,6 +13,7 @@ library(tidyverse)
 library(primer.data)
 library(tidymodels)
 library(broom)
+library(marginaleffects) 
 ```
 
 $$Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_n X_n + \epsilon$$
@@ -26,42 +27,81 @@ $$
 ```{r}
 #| cache: true
 
-x <- governors |>
-    select(c(lived_after, election_age, sex))
+library(dplyr)
+library(gt)
+library(parsnip)
+library(broom)
+
+# Prepare data and fit model
+x <- governors |> select(c(lived_after, election_age, sex))
 
 model_fit <- linear_reg(engine = "lm") |>
-    fit(lived_after ~ sex + election_age, data = x)
+  fit(lived_after ~ sex + election_age, data = x)
+
+# Tidy and format model
 fit_years <- tidy(model_fit, conf.int = TRUE)
 
-library(gt)
-
-fit_years <- tidy(model_fit, conf.int = TRUE)
-
-fit_years |> 
+# Format selected columns and render gt table
+fit_years |>
+  select(term, estimate, conf.low, conf.high) |>
+  mutate(
+    estimate = round(estimate, 3),
+    conf.low = round(conf.low, 3),
+    conf.high = round(conf.high, 3)
+  ) |>
   gt() |>
-  fmt_number(
-    columns = c(estimate, std.error, statistic, p.value, conf.low, conf.high),
-    decimals = 3
+  tab_header(
+    title = md("**Linear Regression Results**"),
+    subtitle = md("Predicting `lived_after` from `sex` and `election_age`")
   ) |>
   cols_label(
-    term = "Term",
+    term     = "Term",
     estimate = "Estimate",
-    std.error = "Std. Error",
-    statistic = "t Statistic",
-    p.value = "P-Value",
     conf.low = "CI Lower",
     conf.high = "CI Upper"
   ) |>
-  tab_header(
-    title = "Linear Regression Results",
-    subtitle = "Predicting `lived_after` from `sex` and `election_age`"
-  ) |>
   tab_options(
-    table.border.top.width = px(1),
-    table.border.bottom.width = px(1),
-    column_labels.font.weight = "bold"
+    table.font.size = "small",
+    column_labels.font.weight = "bold",
+    heading.align = "left"
   )
 
 ```
 
-Running for political office is very difficult. Using data from over 1,000 candidates for governor since 1945 in the United States, we want to create a model to predict how long candidates will live after being elected. One potential weakness is that gender equity has changed over the last few years, meaning that the data from the past may not be accurate to date. We model life expectancy after the election as a linear function of the candidate’s sex, and age at election.
+```{r}
+#| warning: false
+#| message: false
+library(ggplot2)
+library(modelr)
+library(dplyr)
+
+
+# Extract the lm object
+lm_model <- extract_fit_engine(model_fit)
+
+# Add predictions
+x_with_preds <- x |> 
+  mutate(predicted = predict(lm_model, newdata = x))
+
+# Make the plot
+ggplot(x_with_preds, aes(x = election_age, y = predicted, color = sex)) +
+  geom_line(size = 1) +
+  geom_point(aes(y = lived_after), alpha = 0.3, size = 1.5) +
+  labs(
+    title = "Predicted Years Lived After Election",
+    subtitle = "By Election Age and Sex",
+    x = "Election Age",
+    y = "Predicted Years Lived After",
+    color = "Sex"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 18),
+    plot.subtitle = element_text(size = 13),
+    legend.position = "top"
+  ) +
+  scale_color_manual(values = c("Male" = "#1f77b4", "Female" = "#ff7f0e"))
+
+```
+
+Running for political office is very difficult. Using data from over 1,000 candidates for governor since 1945 in the United States, we want to create a model to predict how long candidates will live after being elected. One potential weakness is that gender equity has changed over the last few years, meaning that the data from the past may not be accurate to date. We model life expectancy after the election as a linear function of the candidate’s sex, and age at election. One quantity of interest is that a 50-year-old male political candidate can expect to live about 30 years after the election, plus-or-minus about 1 year.

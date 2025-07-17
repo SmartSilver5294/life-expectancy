@@ -1,0 +1,22 @@
+---
+title: "Life Expectancy for Political Candidates"
+author: "Ayush Chandra"
+format: html
+execute: 
+  echo: false
+---
+
+
+```{r}
+#| message: false
+library(tidyverse)
+library(primer.data)
+library(tidymodels)
+library(broom)
+```
+
+$$Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_n X_n + \epsilon$$
+
+with $\epsilon \sim \mathcal{N}(0, \sigma^2)$.
+
+Running for political office is very difficult. Using data from over 1,000 candidates for governor since 1945 in the United States, we want to create a model to predict how long candidates will live after being elected. One potential weakness is that gender equity has changed over the last few years, meaning that the data from the past may not be accurate to date.
